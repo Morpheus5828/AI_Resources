@@ -89,7 +89,7 @@ class NeuralNetwork:
                 prediction = self.forward(x=x_batch)
 
                 # backpropagate the error through the whole network
-                self.backpropagation(y=y_batch, expected_output=prediction)
+                self.backpropagation(y=prediction, expected_output=y_batch)
                 
                 # update the weights and biases of the network
                 self.update_parameters()
@@ -131,12 +131,13 @@ class NeuralNetwork:
         """
         
         # compute deltaE (TD notation)
-        deltaE =  (expected_output - y) / y.shape[0]
         # compute delta_L, the error to propagate from last layer
-        deltaL = np.multiply(deltaE, expected_output)
+        deltaE = self.cost_function.compute_derivative(y, expected_output)
+
         # call recursive deltas from before last to first
-        for layer in self.layers[-2::-1]:
-            deltaL = layer.propagate_backward(deltaL)
+
+        for layer in self.layers[-1::-1]:
+            deltaE = layer.propagate_backward(deltaE)
 
     def update_parameters(self) -> None:
         """
@@ -158,7 +159,10 @@ class NeuralNetwork:
         :param y: an array of label vectors
         :return: a float between 0 an 1 measuring the accuracy of the network
         """
-        return np.linalg.norm(self.forward(x) - y) ** 2
+        classes_predict = self.predict(x)
+        classes_real = np.argmax(y, axis=1)
+        np.mean(classes_real == classes_predict)
+
 
     def predict(self, x: np.array) -> np.array:
         """
@@ -168,8 +172,8 @@ class NeuralNetwork:
         :param x: an array of input vectors
         :return: an array which i-th element is the class x[i] was assigned to
         """
-        prediction= self.forward(x)
-        return np.argmax(prediction)
+        y_predict = self.forward(x)
+        return np.argmax(y_predict, axis=1)
 
 
     def initialize_architecture(self, architecture: dict) -> None:

@@ -41,8 +41,8 @@ class Dense:
         """
 
         self.x = x
-        self.z = self.x @ self.weights.T + self.biases
-        self.a = self.activation_function()
+        self.a = self.x @ self.weights.T + self.biases
+        self.z = self.activation_function.compute(self.a)
         return self.z
 
     def propagate_backward(self, error_from_next: np.array) -> np.array:
@@ -52,14 +52,14 @@ class Dense:
         :param error_from_next: an array containing the error computed at the next layer
         :return: an array containing the error to be propagated deeper in the network
         """
+        delta_i = error_from_next * self.activation_function.compute_derivative(self.a)
 
-        delta_i = error_from_next
         # Compute gradients for weights and biases
-        self.weights_gradient = delta_i.T @ self.x
-        self.biases_gradient = np.sum(delta_i, axis=0)
-        error_to_propagate = delta_i @ self.weights
+        dW = np.einsum('bi,bj->bij', delta_i, self.x)
+        self.weights_gradient = np.mean(dW, axis=0)
+        self.biases_gradient = delta_i
 
-        return error_to_propagate
+        return delta_i @ self.weights
 
     def update_weights(self, optimizer) -> None:
         """
