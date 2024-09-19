@@ -86,7 +86,7 @@ class NeuralNetwork:
                 x_batch, y_batch = next(batches)
 
                 # calculate output of the network for the given input
-                prediction = self.forward(x=x_batch)
+                prediction = self.forward(x_batch)
 
                 # backpropagate the error through the whole network
                 self.backpropagation(y=prediction, expected_output=y_batch)
@@ -161,7 +161,7 @@ class NeuralNetwork:
         """
         classes_predict = self.predict(x)
         classes_real = np.argmax(y, axis=1)
-        np.mean(classes_real == classes_predict)
+        return np.mean(classes_real == classes_predict)
 
 
     def predict(self, x: np.array) -> np.array:
@@ -172,8 +172,16 @@ class NeuralNetwork:
         :param x: an array of input vectors
         :return: an array which i-th element is the class x[i] was assigned to
         """
-        y_predict = self.forward(x)
-        return np.argmax(y_predict, axis=1)
+        if x.ndim == 1:  # if single prediction
+            x = x[np.newaxis, ...]
+
+            # forward x to the network
+        y_pred = self.forward(x)
+
+        # get best output neurons
+        classification_result = np.argmax(y_pred, axis=1)
+
+        return classification_result
 
 
     def initialize_architecture(self, architecture: dict) -> None:

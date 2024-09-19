@@ -41,7 +41,7 @@ class Dense:
         """
 
         self.x = x
-        self.a = self.x @ self.weights.T + self.biases
+        self.a = x @ self.weights.T + self.biases
         self.z = self.activation_function.compute(self.a)
         return self.z
 
@@ -57,7 +57,7 @@ class Dense:
         # Compute gradients for weights and biases
         dW = np.einsum('bi,bj->bij', delta_i, self.x)
         self.weights_gradient = np.mean(dW, axis=0)
-        self.biases_gradient = delta_i
+        self.biases_gradient = np.mean(delta_i, axis=0)
 
         return delta_i @ self.weights
 
