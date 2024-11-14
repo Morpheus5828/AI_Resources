@@ -307,29 +307,33 @@ class UcbBanditAgent(GreedyBanditAgent):
     Parameters
     ----------
     n_arms : int
-        Number of arms
+    Number of arms
     c : float
-        Positive parameter to adjust exploration/explotation UCB criterion
+        Positive parameter to adjust exploration/exploitation in UCB criterion
     """
 
-    def __init__(self, n_arms, c, t):
-        GreedyBanditAgent.__init__(self, n_arms=n_arms)
+    def __init__(self, n_arms, c):
+        super().__init__(n_arms=n_arms)
         self.c = c
-        self.t = t
+        self.total_steps = 0
 
     def get_action(self):
-        """
-        Get UCB action
+        if 0 in self._n_estimates:
+            return np.argmin(self._n_estimates)
 
-        Returns
-        -------
-        int
-            The chosen action
-        """
-        return np.argmax() + self.c * np.sqrt(np.log(self.t) / len(self.n_arms))
+        ucb_values = self.get_upper_confidence_bound()
+        return np.argmax(ucb_values)
+
+    def fit_step(self, action, reward):
+        self.total_steps += 1
+        self._n_estimates[action] += 1
+        self._value_estimates[action] += (reward - self._value_estimates[action]) / self._n_estimates[action]
 
     def get_upper_confidence_bound(self):
-
+        ucb_values = self._value_estimates + self.c * np.sqrt(
+            np.log(self.total_steps) / self._n_estimates
+        )
+        return ucb_values
 
 
 class ThompsonSamplingAgent(BanditAgent):
