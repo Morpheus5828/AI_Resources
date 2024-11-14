@@ -1,10 +1,9 @@
-# -*- coding: utf-8 -*-
 """
-
-.. moduleauthor:: Valentin Emiya
+.. moduleauthor:: Valentin Emiya, update by Marius THORRE
 """
 
 import abc
+
 import numpy as np
 
 
@@ -87,7 +86,7 @@ class NormalMultiArmedBanditsEnv:
         -------
         int
         """
-        return self._means.size
+        return self._means.shape
 
     @property
     def _true_values(self):
@@ -127,7 +126,7 @@ class NormalMultiArmedBanditsEnv:
         -------
 
         """
-        return NormalMultiArmedBandits(means=np.random.randn(n_arms))
+        return NormalMultiArmedBanditsEnv(means=np.random.randn(n_arms))
 
 
 class BanditAgent(abc.ABC):
@@ -239,7 +238,7 @@ class GreedyBanditAgent(BanditAgent):
             The chosen action
         """
 
-        pass
+        return np.argmax(self._value_estimates)
 
     def fit_step(self, action, reward):
         """
@@ -251,8 +250,8 @@ class GreedyBanditAgent(BanditAgent):
         reward : float
 
         """
-        # TODO à compléter
-        pass
+        self._n_estimates[action] += 1
+        self._value_estimates[action] += (reward - self._value_estimates[action]) / self._n_estimates[action]
 
 
 class EpsilonGreedyBanditAgent(GreedyBanditAgent, RandomBanditAgent):
@@ -283,8 +282,10 @@ class EpsilonGreedyBanditAgent(GreedyBanditAgent, RandomBanditAgent):
         int
             The chosen action
         """
-        # TODO à compléter
-        pass
+        if np.random.randn() < self.epsilon:
+            return np.random.randint(self.n_arms)
+        else:
+            return np.argmax(self._value_estimates)
 
     def fit_step(self, action, reward):
         """
@@ -296,8 +297,8 @@ class EpsilonGreedyBanditAgent(GreedyBanditAgent, RandomBanditAgent):
         reward : float
 
         """
-        # TODO à compléter
-        pass
+        self._n_estimates[action] += 1
+        self._value_estimates[action] += (reward - self._value_estimates[action]) / self._n_estimates[action]
 
 
 class UcbBanditAgent(GreedyBanditAgent):
@@ -311,9 +312,10 @@ class UcbBanditAgent(GreedyBanditAgent):
         Positive parameter to adjust exploration/explotation UCB criterion
     """
 
-    def __init__(self, n_arms, c):
+    def __init__(self, n_arms, c, t):
         GreedyBanditAgent.__init__(self, n_arms=n_arms)
         self.c = c
+        self.t = t
 
     def get_action(self):
         """
@@ -324,12 +326,10 @@ class UcbBanditAgent(GreedyBanditAgent):
         int
             The chosen action
         """
-        # TODO à compléter
-        pass
+        return np.argmax() + self.c * np.sqrt(np.log(self.t) / len(self.n_arms))
 
     def get_upper_confidence_bound(self):
-        # TODO à compléter
-        pass
+
 
 
 class ThompsonSamplingAgent(BanditAgent):
