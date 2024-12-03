@@ -65,75 +65,34 @@ class LinearBandits:
 
 
 class LinUCBAlgorithm:
-    """
-    Parameters
-    ----------
-    n_arms : int
-        Number of arms
-    n_features : int
-        Number of features
-    delta : float
-        Confidence level in [0, 1]
-    """
-
     def __init__(self, n_arms, n_features, delta):
-        self.A = np.ones((n_features, n_features, n_arms))
-        self.B = np.zeros((n_features, n_arms))
+        self.n_arms = n_arms
+        self.n_features = n_features
+        self.delta = delta
 
-        self.alpha = 1 + math.sqrt(1/2 + math.log(2/delta))
-        self.theta = np.linalg.inv(self.A) @ self.B
-        self.nb_arm = n_arms
+        # Initialisation de A et B pour chaque bras
+        self.A = [np.identity(n_features) for _ in range(n_arms)]
+        self.B = [np.zeros(n_features) for _ in range(n_arms)]
 
-    @property
-    def n_arms(self):
-        return self.A.shape[2]
-
-    @property
-    def n_features(self):
-        return self.A.shape[0]
+        self.alpha = 1 + math.sqrt(1/2 * math.log(2/delta))
+        self.theta = [np.zeros(n_features) for _ in range(n_arms)]
 
     def get_action(self, x):
-        """
-        Choose an action
+        ucb_values = []
+        for a in range(self.n_arms):
+            A_inv = np.linalg.inv(self.A[a])
+            theta_a = A_inv @ self.B[a]
+            self.theta[a] = theta_a  # Mise à jour de θ pour le bras courant
 
-        Parameters
-        ----------
-        x : ndarray
-            Context
-
-        Returns
-        -------
-        int
-            The chosen action
-        """
-        u_k = []
-        for k in range(self.n_arms):
-           u_k.append(x.T @ self.theta[k] + self.alpha * np.sqrt(x.T @ np.linalg.inv(self.A[:, :, k]) @ x))
-        u_k = np.array(u_k)
-        return np.argmax(u_k)
+            # Calcul de la borne supérieure de confiance
+            ucb = theta_a @ x + self.alpha * np.sqrt(x.T @ A_inv @ x)
+            ucb_values.append(ucb)
+        return np.argmax(ucb_values)
 
     def fit_step(self, action, reward, x):
-        """
-        Update current value estimates with an (action, reward) pair
-
-        Parameters
-        ----------
-        action : int
-        reward : float
-        x : ndarray
-        """
-        self.A[:, :, action] += np.outer(x, x.T)
-        self.B[:, action] += reward * x
-        self.theta[action] = np.linalg.inv(self.A[:, :, action]) @ self.B[:, action]
+        x = x.reshape(-1, 1)  # Assurez-vous que x est un vecteur colonne
+        self.A[action] += x @ x.T
+        self.B[action] += (reward * x.flatten())
 
 
-if __name__ == "__main__":
-    K = 100
-    iteration = 1000
-    d = 10
 
-    linear_b = LinearBandits(n_arms=K, n_features=d)
-    agent = LinUCBAlgorithm(n_arms=K, n_features=d, delta=0.3)
-    for _ in range(iteration):
-        action = agent.get_action(linear_b.get_context())
-        agent.fit_step(action=action, reward=linear_b.step())
